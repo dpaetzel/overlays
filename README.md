@@ -1,5 +1,8 @@
-# Nix flake for mlflow
+# Useful Nix overlays
 
 
-This flake provides an overlay that fixes `python3.pkgs.mlflow` (currently
-marked as broken in `nixpkgs`).
+This flake provides several useful overlays:
+
+
+- `mlflow` fixes `python3.pkgs.mlflow`
+- `pandas` provides `pandas ==1.3.4`
