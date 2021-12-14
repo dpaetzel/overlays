@@ -15,70 +15,68 @@
     };
     overlays = {
       pandas = pythonPackageOverlay "python3" (final: prev: {
-          pandas = prev.pandas.overridePythonAttrs (attrs: rec {
-            pname = "pandas";
-            version = "1.3.4";
+        pandas = prev.pandas.overridePythonAttrs (attrs: rec {
+          pname = "pandas";
+          version = "1.3.4";
 
-            src = prev.fetchPypi {
-              inherit pname version;
-              sha256 = "1z3gm521wpm3j13rwhlb4f2x0645zvxkgxij37i3imdpy39iiam2";
-            };
-          });
+          src = prev.fetchPypi {
+            inherit pname version;
+            sha256 = "1z3gm521wpm3j13rwhlb4f2x0645zvxkgxij37i3imdpy39iiam2";
+          };
         });
+      });
       mlflow = pythonPackageOverlay "python3" (final: prev: {
-          sqlalchemy = prev.sqlalchemy.overridePythonAttrs (attrs: rec {
-            pname = "SQLAlchemy";
-            # Version 1.3.13 seems to be incompatible with Python 3.9.
-            # version = "1.3.13";
-            version = "1.4.0";
-            src = prev.fetchPypi {
-              inherit pname version;
-              sha256 =
-                "sha256-nP7yrTDF7h1JTZjzxVqawp7G0pS3CEnFQdE55P4adOY=";
-            };
-            doInstallCheck = false;
-          });
-          alembic = prev.alembic.overridePythonAttrs (attrs: rec {
-            pname = "alembic";
-            version = "1.4.1";
-            src = prev.fetchPypi {
-              inherit pname version;
-              sha256 =
-                "sha256:0a4hzn76csgbf1px4f5vfm256byvjrqkgi9869nkcjrwjn35c6kr";
-            };
-            # Something is broken in the alembic tests (probably has to do with
-            # some incompatibility with the SQLAlchemy version):
-            # AttributeError: 'PytestFixtureFunctions' object has no attribute
-            # 'mark_base_test_class'.
-            doCheck = false;
-            propagatedBuildInputs = with prev; [
-              python-editor
-              python-dateutil
-              final.sqlalchemy
-              Mako
-            ];
-            doInstallCheck = false;
-          });
-          mlflow = (prev.mlflow.override {
-            sqlalchemy = final.sqlalchemy;
-            alembic = final.alembic;
-            pandas = final.pandas;
-          }).overridePythonAttrs (attrs: rec {
-            pname = "mlflow";
-            version = "1.22.0";
-            src = prev.fetchPypi {
-              inherit pname version;
-              sha256 = "sha256-9oA5BxXkNq44z3BW7JEDD8nrZ8xjEibyj/lQT745Wt0=";
-            };
-            propagatedBuildInputs = attrs.propagatedBuildInputs
-              ++ (with final; [
-                importlib-metadata
-                prometheus-flask-exporter
-                azure-storage-blob
-              ]);
-            meta.broken = false;
-          });
+        sqlalchemy = prev.sqlalchemy.overridePythonAttrs (attrs: rec {
+          pname = "SQLAlchemy";
+          # Version 1.3.13 seems to be incompatible with Python 3.9.
+          # version = "1.3.13";
+          version = "1.4.0";
+          src = prev.fetchPypi {
+            inherit pname version;
+            sha256 = "sha256-nP7yrTDF7h1JTZjzxVqawp7G0pS3CEnFQdE55P4adOY=";
+          };
+          doInstallCheck = false;
         });
+        alembic = prev.alembic.overridePythonAttrs (attrs: rec {
+          pname = "alembic";
+          version = "1.4.1";
+          src = prev.fetchPypi {
+            inherit pname version;
+            sha256 =
+              "sha256:0a4hzn76csgbf1px4f5vfm256byvjrqkgi9869nkcjrwjn35c6kr";
+          };
+          # Something is broken in the alembic tests (probably has to do with
+          # some incompatibility with the SQLAlchemy version):
+          # AttributeError: 'PytestFixtureFunctions' object has no attribute
+          # 'mark_base_test_class'.
+          doCheck = false;
+          propagatedBuildInputs = with prev; [
+            python-editor
+            python-dateutil
+            final.sqlalchemy
+            Mako
+          ];
+          doInstallCheck = false;
+        });
+        mlflow = (prev.mlflow.override {
+          sqlalchemy = final.sqlalchemy;
+          alembic = final.alembic;
+          pandas = final.pandas;
+        }).overridePythonAttrs (attrs: rec {
+          pname = "mlflow";
+          version = "1.22.0";
+          src = prev.fetchPypi {
+            inherit pname version;
+            sha256 = "sha256-9oA5BxXkNq44z3BW7JEDD8nrZ8xjEibyj/lQT745Wt0=";
+          };
+          propagatedBuildInputs = attrs.propagatedBuildInputs ++ (with final; [
+            importlib-metadata
+            prometheus-flask-exporter
+            azure-storage-blob
+          ]);
+          meta.broken = false;
+        });
+      });
     };
   };
 }
