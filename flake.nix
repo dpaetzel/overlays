@@ -14,7 +14,7 @@
         }));
     };
     overlays = {
-      pandas134 = pythonPackageOverlay "python310" (final: prev: {
+      pandas134 = pythonPackageOverlay "python39" (final: prev: {
         pandas = prev.pandas.overridePythonAttrs (attrs: rec {
           pname = "pandas";
           version = "1.3.4";
@@ -25,7 +25,7 @@
           };
         });
       });
-      mlflow = pythonPackageOverlay "python310" (final: prev: {
+      mlflow = pythonPackageOverlay "python39" (final: prev: {
         sqlalchemy = prev.sqlalchemy.overridePythonAttrs (attrs: rec {
           pname = "SQLAlchemy";
           # Version 1.3.13 seems to be incompatible with Python 3.9.
