@@ -14,7 +14,7 @@
         }));
     };
     overlays = {
-      pandas = pythonPackageOverlay "python3" (final: prev: {
+      pandas134 = pythonPackageOverlay "python3" (final: prev: {
         pandas = prev.pandas.overridePythonAttrs (attrs: rec {
           pname = "pandas";
           version = "1.3.4";
