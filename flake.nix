@@ -36,6 +36,7 @@
             sha256 = "sha256-nP7yrTDF7h1JTZjzxVqawp7G0pS3CEnFQdE55P4adOY=";
           };
           doInstallCheck = false;
+          doCheck = false;
         });
         alembic = prev.alembic.overridePythonAttrs (attrs: rec {
           pname = "alembic";
