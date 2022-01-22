@@ -79,5 +79,11 @@
         });
       });
     };
+    # Yapf seems to require toml in order to work in pyproject.toml style Python
+    # projects.
+    yapfToml = pythonPackageOverlay "python39" (final: prev: {
+      yapfToml = prev.yapf.overridePythonAttrs
+        (old: rec { propagatedBuildInputs = [ prev.toml ]; });
+    });
   };
 }
