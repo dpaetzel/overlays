@@ -79,6 +79,29 @@
         });
       });
     };
+    khal = (final: prev:
+      (let
+        tzlocal21 = prev.python39.pkgs.tzlocal.overridePythonAttrs (attrs: rec {
+          pname = "tzlocal";
+          version = "2.1";
+
+          propagatedBuildInputs = [ prev.python39.pkgs.pytz ];
+
+          doCheck = false;
+
+          pythonImportsCheck = [ "tzlocal" ];
+
+          src = prev.python39.pkgs.fetchPypi {
+            inherit pname version;
+            sha256 = "sha256-ZDyXxSlK7cc3eApJ2d8wiJMhy+EgTqwsLsYTQDWpLkQ=";
+          };
+        });
+      in {
+        khal = prev.khal.overridePythonAttrs (attrs: {
+          propagatedBuildInputs = (builtins.filter (i: i.pname != "tzlocal")
+            attrs.propagatedBuildInputs) ++ [ tzlocal21 ];
+        });
+      }));
     # Yapf seems to require toml in order to work in pyproject.toml style Python
     # projects.
     yapfToml = pythonPackageOverlay "python39" (final: prev: {
