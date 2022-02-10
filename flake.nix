@@ -2,6 +2,7 @@
   description = "A collection of useful flakes";
 
   outputs = { self, ... }: rec {
+
     # https://github.com/NixOS/nixpkgs/issues/44426
     # https://discourse.nixos.org/t/makeextensibleasoverlay/7116/5
     pythonPackageOverlay = attr: overlay: self: super: {
@@ -13,6 +14,8 @@
             overlay;
         }));
     };
+
+    # TODO Make these overlays toplevel, too
     overlays = {
       pandas134 = pythonPackageOverlay "python39" (final: prev: {
         pandas = prev.pandas.overridePythonAttrs (attrs: rec {
@@ -79,6 +82,7 @@
         });
       });
     };
+
     khal = (final: prev:
       (let
         tzlocal21 = prev.python39.pkgs.tzlocal.overridePythonAttrs (attrs: rec {
@@ -102,11 +106,171 @@
             attrs.propagatedBuildInputs) ++ [ tzlocal21 ];
         });
       }));
+
     # Yapf seems to require toml in order to work in pyproject.toml style Python
     # projects.
     yapfToml = pythonPackageOverlay "python39" (final: prev: {
       yapfToml = prev.yapf.overridePythonAttrs
         (old: rec { propagatedBuildInputs = [ prev.toml ]; });
     });
+
+    pymc4 =
+      pythonPackageOverlay "python39" (final: prev: {
+        logical-unification = prev.buildPythonPackage rec {
+          pname = "logical-unification";
+          version = "0.4.5";
+
+          propagatedBuildInputs = with prev; [
+            multipledispatch
+            toolz
+          ];
+
+          src = prev.fetchPypi {
+            inherit pname version;
+            sha256 = "sha256-fGpsG3xrqg9bmvk/Bs/I0kGba3kzRrZ47RNnwFznRVg=";
+          };
+
+          doCheck = false;
+        };
+
+
+        cons = prev.buildPythonPackage rec {
+          pname = "cons";
+          version = "0.4.5";
+
+          propagatedBuildInputs = with prev; [
+            final.logical-unification
+          ];
+
+          src = prev.fetchPypi {
+            inherit pname version;
+            sha256 = "sha256-tGtIrbWlr39EN12jRtkm5VoyXU3BK5rdnyAoDTs3Qss=";
+          };
+
+          doCheck = false;
+        };
+
+        etuples = prev.buildPythonPackage rec {
+          pname = "etuples";
+          version = "0.3.4";
+
+          propagatedBuildInputs = with prev; [
+            final.cons
+          ];
+
+          src = prev.fetchPypi {
+            inherit pname version;
+            sha256 = "sha256-mAUTeb0oTORi2GjkTDiaIiBrNcSVztJZBBrx8ypUoKM=";
+          };
+
+          doCheck = false;
+        };
+
+        miniKanren = prev.buildPythonPackage rec {
+          pname = "miniKanren";
+          version = "1.0.3";
+
+          propagatedBuildInputs = with prev; [
+            final.cons
+            final.etuples
+            final.logical-unification
+          ];
+
+          src = prev.fetchPypi {
+            inherit pname version;
+            sha256 = "sha256-Hsi9sBFErV6HUsfCl/uKEi25IPhZJ20lpy0WTpmNf24=";
+          };
+
+          doCheck = false;
+        };
+
+        aesara = prev.buildPythonPackage rec {
+          pname = "aesara";
+          version = "2.3.2";
+
+          propagatedBuildInputs = with prev; [
+            final.miniKanren
+            final.cons
+
+            numpy
+            scipy
+            filelock
+          ];
+
+          src = prev.fetchPypi {
+            inherit pname version;
+            sha256 = "sha256-rYk6RhVGsXR0lfsnhnZjO7jgraqLThsL3/8v6zKNFeY=";
+          };
+
+          doCheck = false;
+        };
+
+        aeppl = prev.buildPythonPackage rec {
+          pname = "aeppl";
+          version = "0.0.18";
+
+          propagatedBuildInputs = with prev; [
+            final.aesara
+          ];
+
+          src = prev.fetchPypi {
+            inherit pname version;
+            sha256 = "sha256-I0bJhfBzEidbF7/SLoR9RAjx9hmtEZgfrrjiPS+5S7c=";
+          };
+
+          doCheck = false;
+        };
+
+        pymc4 = prev.buildPythonPackage rec {
+          pname = "pymc";
+          version = "4.0.0b2";
+
+          meta.broken = false;
+
+          src = prev.fetchPypi {
+            inherit pname version;
+            sha256 = "sha256-u/5kz+zFoTWPebSeaIdAR0Y8K3nV3Q04ZSwzT9/+N7Y=";
+          };
+
+          propagatedBuildInputs = with prev; [
+            arviz
+            cachetools
+            fastprogress
+            h5py
+            joblib
+            packaging
+            pandas
+            patsy
+            semver
+            six
+            tqdm
+            typing-extensions
+
+            cloudpickle
+
+            final.aeppl
+            final.aesara
+          ];
+
+          # From the pymc3 Nix package:
+          # “The test suite is computationally intensive and test failures are not
+          # indicative for package usability hence tests are disabled by default.”
+          doCheck = false;
+          pythonImportsCheck = [ "pymc" ];
+
+          # From the pymc3 Nix package:
+          # “For some reason tests are run as a part of the *install* phase if
+          # enabled.  Theano writes compiled code to ~/.theano hence we set
+          # $HOME.”
+          preInstall = "export HOME=$(mktemp -d)";
+          postInstall = "rm -rf $HOME";
+
+          checkInputs = with prev; [
+            pytest
+            pytest-cov
+          ];
+        };
+      }
+    );
   };
 }
