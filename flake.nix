@@ -1,7 +1,19 @@
 {
   description = "A collection of useful flakes";
 
-  outputs = { self, ... }: rec {
+  inputs = {
+    kerasTunerSrc = {
+      url = "github:keras-team/keras-tuner/1.1.0";
+      flake = false;
+    };
+
+    ktLegacySrc = {
+      url = "github:haifeng-jin/kt-legacy";
+      flake = false;
+    };
+  };
+
+  outputs = inputs@{ self, ... }: rec {
 
     # https://github.com/NixOS/nixpkgs/issues/44426
     # https://discourse.nixos.org/t/makeextensibleasoverlay/7116/5
@@ -272,5 +284,39 @@
         };
       }
     );
+
+    keras-tuner = pythonPackageOverlay "python38" (final: prev: rec {
+      kt-legacy = prev.buildPythonPackage rec {
+        pname = "kt-legacy";
+        # NOTE There's no version information in the repo.
+        version = "1.0";
+
+        src = inputs.ktLegacySrc;
+
+        doCheck = false;
+      };
+
+      keras-tuner = prev.buildPythonPackage rec {
+        pname = "keras-tuner";
+        version = "1.1.0";
+
+        src = inputs.kerasTunerSrc;
+
+        propagatedBuildInputs = with prev; [
+          # From https://github.com/keras-team/keras-tuner/blob/master/setup.py.
+          tensorflow-tensorboard
+          packaging
+          numpy
+          requests
+          ipython
+          kt-legacy
+
+          # Not in setup.py but required nonetheless.
+          scipy
+        ];
+
+        doCheck = false;
+      };
+    });
   };
 }
