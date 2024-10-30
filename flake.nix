@@ -105,6 +105,12 @@
           meta.broken = false;
         });
       });
+      # Yapf seems to require toml in order to work in pyproject.toml style Python
+      # projects.
+      yapfToml = pythonPackageOverlay "python39" (final: prev: {
+        yapfToml = prev.yapf.overridePythonAttrs
+          (old: rec { propagatedBuildInputs = [ prev.toml ]; });
+      });
     };
 
     khal = (final: prev:
@@ -130,13 +136,6 @@
             attrs.propagatedBuildInputs) ++ [ tzlocal21 ];
         });
       }));
-
-    # Yapf seems to require toml in order to work in pyproject.toml style Python
-    # projects.
-    yapfToml = pythonPackageOverlay "python39" (final: prev: {
-      yapfToml = prev.yapf.overridePythonAttrs
-        (old: rec { propagatedBuildInputs = [ prev.toml ]; });
-    });
 
     pymc4 = pythonPackageOverlay "python39" (final: prev: {
       logical-unification = prev.buildPythonPackage rec {
