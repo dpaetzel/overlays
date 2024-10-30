@@ -27,8 +27,20 @@
         }));
     };
 
-    # TODO Make these overlays toplevel, too
     overlays = {
+      mydefaults = (final: prev: {
+        # Emacs is central to everything, so let's pin its version to more
+        # consciously upgrade it.
+        myemacs = prev.emacs29;
+        # We use the default Python 3 currently used by nixpkgs (3.11.9 as
+        # of 2024-06-22) because the version does really not matter much in
+        # everyday use.
+        mypython = prev.python3;
+        # TODO Expose pythonEnv and python app?
+
+        myjulia = prev.julia_110-bin;
+      });
+
       pandas134 = pythonPackageOverlay "python39" (final: prev: {
         pandas = prev.pandas.overridePythonAttrs (attrs: rec {
           pname = "pandas";
