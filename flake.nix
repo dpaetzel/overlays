@@ -1,7 +1,13 @@
 {
-  description = "A collection of useful flakes";
+  description = "A collection of useful Nix overlays";
 
   inputs = {
+    # Required by the xcsf overlay.
+    dSFMTSrc = {
+      url = "github:MersenneTwister-Lab/dSFMT";
+      flake = false;
+    };
+
     kerasTunerSrc = {
       url = "github:keras-team/keras-tuner/1.1.0";
       flake = false;
@@ -9,6 +15,11 @@
 
     ktLegacySrc = {
       url = "github:haifeng-jin/kt-legacy";
+      flake = false;
+    };
+
+    xcsfSrc = {
+      url = "github:xcsf-dev/xcsf";
       flake = false;
     };
   };
@@ -28,7 +39,7 @@
     };
 
     overlays = {
-      mydefaults = (final: prev: {
+      mydefaults = final: prev: {
         # Emacs is central to everything, so let's pin its version to more
         # consciously upgrade it.
         myemacs = prev.emacs29;
@@ -39,7 +50,101 @@
         # TODO Expose pythonEnv and python app?
 
         myjulia = prev.julia_110-bin;
-      });
+      };
+
+      xcsf = final: prev: {
+        pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+          (
+            python-final: python-prev:
+
+            # XCSF's build process expects the dSFMT library source to be available.
+            # Therefore, we make it available.
+            let
+              dSFMT = prev.pkgs.stdenv.mkDerivation {
+                name = "dSFMT";
+                version = "dev";
+
+                src = inputs.dSFMTSrc;
+                dontConfigure = true;
+                dontBuild = true;
+                installPhase = ''
+                  mkdir "$out"
+                  cp -r * "$out"
+                '';
+              };
+            in
+            {
+              xcsf = python-prev.toPythonModule (
+                prev.pkgs.stdenv.mkDerivation rec {
+                  enablePython = true;
+
+                  pname = "xcsf";
+                  version = "dev";
+
+                  src = inputs.xcsfSrc;
+
+                  patchPhase = ''
+                    sed -i 's|add_subdirectory(lib/pybind11)|find_package(pybind11 CONFIG)|' \
+                        CMakeLists.txt
+                    sed -i 's|''${CMAKE_SOURCE_DIR}/lib/dSFMT|${dSFMT}|' \
+                        xcsf/CMakeLists.txt
+                    sed -i 's|''${CMAKE_SOURCE_DIR}/lib/cJSON|${prev.pkgs.cjson.src}|' \
+                        xcsf/CMakeLists.txt
+                    sed -i 's|../lib/cJSON|${prev.pkgs.cjson.src}|' xcsf/utils.h
+                    sed -i 's|../lib/dSFMT|${dSFMT}|' xcsf/utils.h
+                    sed -i 's|../lib/doctest|${prev.pkgs.doctest.src}|' test/*.cpp
+                  '';
+
+                  nativeBuildInputs = [
+                    prev.pkgs.extra-cmake-modules
+                    python-prev.pybind11
+                  ];
+
+                  propagatedBuildInputs = [
+                    python-prev.numpy
+                  ];
+
+                  buildInputs = [
+                    prev.doxygen
+                    prev.graphviz
+                    # We generally have pkgs.python312.pkgs.python ==
+                    # pkgs.python312 and thus `python-prev.python` should refer
+                    # to the Python version that we're currently overwriting
+                    # since `python-prev == pkgs.python312.pkgs`.
+                    python-prev.python
+                  ];
+                  # TODO Add openmp?
+
+                  cmakeFlags = [
+                    "-DCMAKE_BUILD_TYPE=RELEASE"
+
+                    "-DXCSF_PYLIB=ON"
+                    "-DENABLE_TESTS=ON"
+                    "-DPARALLEL=ON"
+                  ];
+
+                  installPhase = ''
+                    mkdir -p $out/${python-prev.python.sitePackages}
+                    cp xcsf/xcsf.*.so $out/${python-prev.python.sitePackages}
+                  '';
+
+                  meta = with prev.lib; {
+                    description = "Implementation of the XCSF learning classifier system";
+                    longDescription = ''
+                      Preen's Python bindings for his implementation of the XCSF learning
+                      classifier system in C.
+                    '';
+                    homepage = "https://github.com/rpreen/xcsf";
+                    license = licenses.gpl3;
+                    maintainers = [ maintainers.dpaetzel ];
+                    platforms = platforms.all;
+                  };
+                }
+              );
+            }
+          )
+        ];
+      };
 
       pandas134 = pythonPackageOverlay "python39" (final: prev: {
         pandas = prev.pandas.overridePythonAttrs (attrs: rec {
